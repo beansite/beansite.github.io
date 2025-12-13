@@ -62,39 +62,6 @@ gdsdk= function() {
     });
   };
   
-  // ***** ADS *****
-  this.AdType= {
-    "Rewarded": "rewarded",
-    "Interstitial": "interstitial",
-    "Preroll": "interstitial",
-    "Midroll": "interstitial",
-    "Display": "display"
-  };
-
-   this.Interstitial= function() {
-    console.log("--gdsdk--Interstitial--", arguments);
-  };
-
-  this.preloadAd= function() {
-    console.log("--gdsdk--preloadAd--");
-    window.GD_OPTIONS.onEvent({
-      "name": "SDK_READY",
-      "message": "Everything is ready.",
-      "status": "success"
-    });
-    return new Promise((resolve, reject)=> {
-      resolve(true);
-    });
-  }
-  
-  this.cancelAd= function() {
-    return new Promise((resolve, reject)=> {
-      resolve(true);
-    });
-  };
-  
-
-
 
 
   // ***** EVENTS & LOGS *****

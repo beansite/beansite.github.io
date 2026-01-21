@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Echoes of the Spire – Hard Ascension Prototype</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1b2340 0, #050814 55%, #02030a 100%);
+      color: #f5f5f5;
+      overflow: hidden;
+    }
+    #game-root {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+    #sidebar {
+      width: 320px;
+      background: rgba(5, 8, 20, 0.96);
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 14px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #main-view {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .tagline {
+      font-size: 0.75rem;
+      color: #c7b9ff;
+      margin-top: 2px;
+    }
+    .panel {
+      background: rgba(10, 14, 35, 0.95);
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .panel h2 {
+      margin: 0 0 6px;
+      font-size: 0.9rem;
+      color: #ffdf7f;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+    }
+    .stat-label { color: #cfd2ff; }
+    .stat-value { font-weight: 600; }
+    .bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7fe7ff, #ffdf7f);
+      width: 50%;
+      transition: width 0.2s ease-out;
+    }
+    #log {
+      height: 150px;
+      overflow-y: auto;
+      font-size: 0.75rem;
+      padding-right: 4px;
+    }
+    #log p { margin: 2px 0; }
+    .log-system { color: #9fa4ff; }
+    .log-combat { color: #ffb3c6; }
+    .log-choice { color: #7fe7ff; }
+    #controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 4px;
+    }
+    button {
+      background: linear-gradient(135deg, #28345a, #4b2f7f);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
+      color: #f5f5f5;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.15s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 10px rgba(127, 231, 255, 0.3);
+      background: linear-gradient(135deg, #32406f, #5b3a9a);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+    #floor-info {
+      font-size: 0.8rem;
+      color: #d0c8ff;
+    }
+    #meta-info {
+      font-size: 0.75rem;
+      color: #9aa0ff;
+    }
+    #tower {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 900px;
+    }
+    #floor-card {
+      width: 70%;
+      max-width: 780px;
+      height: 75%;
+      max-height: 460px;
+      background: radial-gradient(circle at top, rgba(127, 231, 255, 0.12), rgba(5, 8, 20, 0.98));
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+    }
+    #floor-inner {
+      position: absolute;
+      inset: 0;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #floor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    #floor-name {
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #floor-type {
+      font-size: 0.8rem;
+      color: #ffdf7f;
+    }
+    #floor-body {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    #floor-description {
+      flex: 2;
+      font-size: 0.9rem;
+      color: #e6e6ff;
+    }
+    #floor-tags {
+      flex: 1;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(10, 14, 35, 0.9);
+      margin: 1px;
+      white-space: nowrap;
+    }
+    .tag-pill span { font-size: 0.7rem; }
+    #choice-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+    #choice-text { color: #c7f5ff; }
+    #choice-hint { color: #a0a0ff; }
+    #run-summary {
+      font-size: 0.75rem;
+      color: #b0b0ff;
+    }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 0, transparent 55%, rgba(0, 0, 0, 0.7) 100%);
+    }
+    #summit-banner {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.9));
+      backdrop-filter: blur(4px);
+      z-index: 20;
+    }
+    #summit-banner-inner {
+      text-align: center;
+      padding: 20px 26px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: linear-gradient(145deg, rgba(10, 14, 35, 0.96), rgba(75, 47, 127, 0.96));
+      max-width: 420px;
+    }
+    #summit-banner-inner h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      color: #ffdf7f;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #summit-banner-inner p {
+      margin: 4px 0;
+      font-size: 0.85rem;
+    }
+    #restart-btn {
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    #status-effects, #relics-list, #enemy-info {
+      font-size: 0.75rem;
+    }
+    .status-pill, .relic-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(20, 24, 55, 0.9);
+      margin: 1px;
+      font-size: 0.7rem;
+    }
+
+    #minigame-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.9));
+      z-index: 15;
+    }
+    #minigame-inner {
+      width: 420px;
+      max-width: 90%;
+      background: linear-gradient(145deg, rgba(10, 14, 35, 0.98), rgba(60, 40, 110, 0.98));
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 14px 16px 16px;
+      font-size: 0.8rem;
+    }
+    #minigame-title {
+      font-size: 0.9rem;
+      color: #ffdf7f;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+    #minigame-desc {
+      margin-bottom: 10px;
+      color: #e6e6ff;
+    }
+    #minigame-content {
+      margin-bottom: 10px;
+    }
+    #minigame-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #c7b9ff;
+    }
+
+    #timing-bar {
+      position: relative;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    #timing-target {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 18%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7fe7ff, #ffdf7f);
+    }
+    #timing-marker {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 4%;
+      border-radius: 999px;
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+    }
+
+    #sequence-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .sequence-symbol {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    #sequence-input {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .sequence-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(20, 24, 55, 0.9);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    #echo-options {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .echo-option {
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 6px 8px;
+      background: rgba(20, 24, 55, 0.9);
+      cursor: pointer;
+    }
+    .echo-option:hover {
+      background: rgba(40, 44, 85, 0.95);
+    }
+
+    @media (max-width: 900px) {
+      #game-root { flex-direction: column; }
+      #sidebar {
+        width: 100%;
+        height: 260px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      #floor-card {
+        width: 90%;
+        height: 75%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-root">
+    <aside id="sidebar">
+      <div>
+        <h1>Echoes of the Spire</h1>
+        <div class="tagline">Climb the living tower that remembers you.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Current run</h2>
+        <div id="floor-info">Floor: <span id="floor-number">1</span> · Tier: <span id="floor-tier">Low</span></div>
+        <div id="meta-info">
+          Attunement: <span id="attunement">0</span> · Shards: <span id="shards">0</span><br />
+          Combo: <span id="combo">0</span> · Crit: <span id="crit">5%</span><br />
+          Stability: <span id="stability">0</span> · Fatigue: <span id="fatigue">0</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Stats</h2>
+        <div class="stat-row">
+          <span class="stat-label">Resolve (HP)</span>
+          <span class="stat-value" id="stat-resolve">100</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="bar-resolve"></div></div>
+
+        <div class="stat-row">
+          <span class="stat-label">Focus (Echo)</span>
+          <span class="stat-value" id="stat-focus">0</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="bar-focus"></div></div>
+
+        <div class="stat-row">
+          <span class="stat-label">Tempo (Rhythm)</span>
+          <span class="stat-value" id="stat-tempo">1.0x</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="bar-tempo"></div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Status & relics</h2>
+        <div><strong>Effects:</strong></div>
+        <div id="status-effects"></div>
+        <div style="margin-top:4px;"><strong>Relics:</strong></div>
+        <div id="relics-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Enemy & floor</h2>
+        <div id="enemy-info">
+          Enemy: <span id="enemy-name">Training Construct</span><br />
+          Type: <span id="enemy-type">Neutral</span><br />
+          Armor: <span id="enemy-armor">0</span> · Threat: <span id="enemy-threat">Low</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Actions</h2>
+        <div id="controls">
+          <button id="btn-combat">Engage combat</button>
+          <button id="btn-puzzle">Solve puzzle</button>
+          <button id="btn-echo">Trigger echo</button>
+          <button id="btn-ascend">Ascend floor</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Run log</h2>
+        <div id="log"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Summary</h2>
+        <div id="run-summary">
+          Echo Traits unlocked: <span id="traits-count">0</span><br />
+          Floors cleared this run: <span id="floors-cleared">0</span><br />
+          Tower mood: <span id="tower-mood">Wary</span>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main-view">
+      <div id="tower">
+        <div id="floor-card">
+          <div id="floor-inner">
+            <div id="floor-header">
+              <div>
+                <div id="floor-name">The Whispering Vestibule</div>
+                <div id="floor-type">Combat · Introductory</div>
+              </div>
+              <div id="floor-tier-label">Spire Depth: Low</div>
+            </div>
+
+            <div id="floor-body">
+              <div id="floor-description">
+                You step into a circular chamber of stone and glass. Faint echoes of your own footsteps arrive a heartbeat late,
+                as if the tower is rehearsing you. Simple constructs patrol the room, their eyes dim but watchful.
+                This floor is forgiving—mostly observing how you move and strike.
+              </div>
+              <div id="floor-tags">
+                <div><strong>Floor traits</strong></div>
+                <div id="floor-tags-list">
+                  <span class="tag-pill"><span>Low threat</span></span>
+                  <span class="tag-pill"><span>Attunement seed</span></span>
+                  <span class="tag-pill"><span>Echo imprint: None</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div id="choice-row">
+              <div id="choice-text">Choice: Will you play aggressively or study the rhythm?</div>
+              <div id="choice-hint">Tip: Actions trigger minigames. Ascending now requires Stability and passing checks.</div>
+            </div>
+          </div>
+          <div id="overlay"></div>
+
+          <div id="summit-banner">
+            <div id="summit-banner-inner">
+              <h2>Summit Reached</h2>
+              <p id="summit-text">
+                The Spire quiets. It has learned your rhythm—and you have learned its.
+              </p>
+              <p>
+                Attunement: <span id="final-attunement">0</span> · Echo Traits: <span id="final-traits">0</span> · Total floors: <span id="final-floors">0</span>
+              </p>
+              <button id="restart-btn">Begin a new climb</button>
+            </div>
+          </div>
+
+          <div id="minigame-overlay">
+            <div id="minigame-inner">
+              <div id="minigame-title">Minigame</div>
+              <div id="minigame-desc"></div>
+              <div id="minigame-content"></div>
+              <div id="minigame-footer">
+                <span id="minigame-status">Perform well for better rewards.</span>
+                <button id="minigame-cancel">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      floor: 1,
+      maxFloors: 12,
+      resolve: 100,
+      focus: 0,
+      tempo: 1.0,
+      shards: 0,
+      attunement: 0,
+      traits: 0,
+      floorsCleared: 0,
+      towerMood: "Wary",
+      lastStyle: "neutral",
+      combo: 0,
+      critChance: 5,
+      statusEffects: [],
+      relics: [],
+      stability: 0,
+      floorFatigue: 0,
+      enemy: {
+        name: "Training Construct",
+        type: "Neutral",
+        armor: 0,
+        threat: "Low",
+      },
+    };
+
+    const floorPresets = [
+      {
+        name: "The Whispering Vestibule",
+        type: "Combat · Introductory",
+        tier: "Low",
+        description:
+          "You step into a circular chamber of stone and glass. Faint echoes of your own footsteps arrive a heartbeat late, as if the tower is rehearsing you. Simple constructs patrol the room, their eyes dim but watchful.",
+        tags: ["Low threat", "Attunement seed", "Echo imprint: None"],
+        moodShift: 0,
+        enemy: { name: "Training Construct", type: "Neutral", armor: 0, threat: "Low" },
+      },
+      {
+        name: "Hall of Split Decisions",
+        type: "Puzzle · Branching",
+        tier: "Low",
+        description:
+          "Two mirrored corridors stretch ahead, each reflecting a different version of you. Runes flicker between them, asking which self you’ll empower.",
+        tags: ["Choice-heavy", "Memory door potential", "Echo imprint: Minor"],
+        moodShift: 1,
+        enemy: { name: "Mirror Wisp", type: "Arcane", armor: 1, threat: "Low" },
+      },
+      {
+        name: "Chorus of Blades",
+        type: "Combat · Rhythm",
+        tier: "Mid",
+        description:
+          "Bladed drones orbit the arena in looping patterns. Their attacks sync with a distant drumbeat that seems to come from the Spire’s heart.",
+        tags: ["Rhythm bonus", "High tempo", "Echo imprint: Aggressive"],
+        moodShift: 2,
+        enemy: { name: "Blade Drone", type: "Physical", armor: 2, threat: "Mid" },
+      },
+      {
+        name: "The Quiet Archive",
+        type: "Puzzle · Lore",
+        tier: "Mid",
+        description:
+          "Shelves of stone tablets rotate slowly in the air. Each one bears a fragment of someone else’s run—some triumphant, some cut short.",
+        tags: ["Lore-rich", "Attunement gain", "Echo imprint: Reflective"],
+        moodShift: -1,
+        enemy: { name: "Archivist Echo", type: "Psychic", armor: 0, threat: "Mid" },
+      },
+      {
+        name: "Fractured Arena",
+        type: "Combat · Hazard",
+        tier: "High",
+        description:
+          "The floor is broken into floating platforms that shift under your weight. Echoes of your previous missteps manifest as traps.",
+        tags: ["High threat", "Echo hazards", "Memory doors active"],
+        moodShift: 2,
+        enemy: { name: "Fractured Guardian", type: "Physical", armor: 3, threat: "High" },
+      },
+      {
+        name: "The Listening Well",
+        type: "Echo · Event",
+        tier: "High",
+        description:
+          "A deep well hums with voices—some yours, some not. If you lean in, you can trade a piece of yourself for power.",
+        tags: ["Echo trade", "Risk-reward", "Attunement spike"],
+        moodShift: 3,
+        enemy: { name: "Well-Tender Shade", type: "Arcane", armor: 1, threat: "High" },
+      },
+      {
+        name: "Antechamber of the Summit",
+        type: "Combat · Boss",
+        tier: "Summit",
+        description:
+          "A phantom wielding your own fighting style steps forward. The Spire has built a champion out of your habits.",
+        tags: ["Boss", "Self-duel", "Echo imprint: Major"],
+        moodShift: 4,
+        enemy: { name: "Echo of the Climber", type: "Adaptive", armor: 4, threat: "Boss" },
+      },
+    ];
+
+    const floorNumberEl = document.getElementById("floor-number");
+    const floorTierEl = document.getElementById("floor-tier");
+    const attunementEl = document.getElementById("attunement");
+    const shardsEl = document.getElementById("shards");
+    const comboEl = document.getElementById("combo");
+    const critEl = document.getElementById("crit");
+    const stabilityEl = document.getElementById("stability");
+    const fatigueEl = document.getElementById("fatigue");
+    const statResolveEl = document.getElementById("stat-resolve");
+    const statFocusEl = document.getElementById("stat-focus");
+    const statTempoEl = document.getElementById("stat-tempo");
+    const barResolveEl = document.getElementById("bar-resolve");
+    const barFocusEl = document.getElementById("bar-focus");
+    const barTempoEl = document.getElementById("bar-tempo");
+    const traitsCountEl = document.getElementById("traits-count");
+    const floorsClearedEl = document.getElementById("floors-cleared");
+    const towerMoodEl = document.getElementById("tower-mood");
+    const logEl = document.getElementById("log");
+    const statusEffectsEl = document.getElementById("status-effects");
+    const relicsListEl = document.getElementById("relics-list");
+    const enemyNameEl = document.getElementById("enemy-name");
+    const enemyTypeEl = document.getElementById("enemy-type");
+    const enemyArmorEl = document.getElementById("enemy-armor");
+    const enemyThreatEl = document.getElementById("enemy-threat");
+
+    const floorNameEl = document.getElementById("floor-name");
+    const floorTypeEl = document.getElementById("floor-type");
+    const floorTierLabelEl = document.getElementById("floor-tier-label");
+    const floorDescriptionEl = document.getElementById("floor-description");
+    const floorTagsListEl = document.getElementById("floor-tags-list");
+    const choiceTextEl = document.getElementById("choice-text");
+
+    const summitBannerEl = document.getElementById("summit-banner");
+    const finalAttunementEl = document.getElementById("final-attunement");
+    const finalTraitsEl = document.getElementById("final-traits");
+    const finalFloorsEl = document.getElementById("final-floors");
+
+    const btnCombat = document.getElementById("btn-combat");
+    const btnPuzzle = document.getElementById("btn-puzzle");
+    const btnEcho = document.getElementById("btn-echo");
+    const btnAscend = document.getElementById("btn-ascend");
+    const restartBtn = document.getElementById("restart-btn");
+
+    const minigameOverlay = document.getElementById("minigame-overlay");
+    const minigameTitle = document.getElementById("minigame-title");
+    const minigameDesc = document.getElementById("minigame-desc");
+    const minigameContent = document.getElementById("minigame-content");
+    const minigameStatus = document.getElementById("minigame-status");
+    const minigameCancel = document.getElementById("minigame-cancel");
+
+    let activeMinigame = null;
+    let timingInterval = null;
+    let timingMarkerPos = 0;
+    let timingDirection = 1;
+    let sequenceTarget = [];
+    let sequenceInput = [];
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function addLog(message, type = "system") {
+      const p = document.createElement("p");
+      p.textContent = message;
+      if (type === "combat") p.classList.add("log-combat");
+      else if (type === "choice") p.classList.add("log-choice");
+      else p.classList.add("log-system");
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function updateStatusAndRelicsUI() {
+      statusEffectsEl.innerHTML = "";
+      if (state.statusEffects.length === 0) {
+        statusEffectsEl.textContent = "None";
+      } else {
+        state.statusEffects.forEach((s) => {
+          const span = document.createElement("span");
+          span.className = "status-pill";
+          span.textContent = s;
+          statusEffectsEl.appendChild(span);
+        });
+      }
+
+      relicsListEl.innerHTML = "";
+      if (state.relics.length === 0) {
+        relicsListEl.textContent = "None";
+      } else {
+        state.relics.forEach((r) => {
+          const span = document.createElement("span");
+          span.className = "relic-pill";
+          span.textContent = r;
+          relicsListEl.appendChild(span);
+        });
+      }
+    }
+
+    function updateEnemyUI() {
+      enemyNameEl.textContent = state.enemy.name;
+      enemyTypeEl.textContent = state.enemy.type;
+      enemyArmorEl.textContent = state.enemy.armor;
+      enemyThreatEl.textContent = state.enemy.threat;
+    }
+
+    function updateStatsUI() {
+      floorNumberEl.textContent = state.floor;
+      const tier =
+        state.floor <= 3 ? "Low" : state.floor <= 7 ? "Mid" : state.floor < state.maxFloors ? "High" : "Summit";
+      floorTierEl.textContent = tier;
+      attunementEl.textContent = state.attunement;
+      shardsEl.textContent = state.shards;
+      comboEl.textContent = state.combo;
+      critEl.textContent = state.critChance + "%";
+      stabilityEl.textContent = state.stability;
+      fatigueEl.textContent = state.floorFatigue;
+      statResolveEl.textContent = state.resolve;
+      statFocusEl.textContent = state.focus;
+      statTempoEl.textContent = state.tempo.toFixed(2) + "x";
+
+      barResolveEl.style.width = clamp(state.resolve, 0, 100) + "%";
+      barFocusEl.style.width = clamp(state.focus, 0, 100) + "%";
+      barTempoEl.style.width = clamp((state.tempo / 2) * 100, 0, 100) + "%";
+
+      traitsCountEl.textContent = state.traits;
+      floorsClearedEl.textContent = state.floorsCleared;
+      towerMoodEl.textContent = state.towerMood;
+
+      updateStatusAndRelicsUI();
+      updateEnemyUI();
+    }
+
+    function pickFloorPreset() {
+      if (state.floor === state.maxFloors) {
+        return floorPresets[floorPresets.length - 1];
+      }
+      if (state.floor <= 2) return floorPresets[0];
+      if (state.floor === 3) return floorPresets[1];
+      if (state.floor === 4 || state.floor === 5) return floorPresets[2];
+      if (state.floor === 6) return floorPresets[3];
+      if (state.floor === 7 || state.floor === 8) return floorPresets[4];
+      if (state.floor === 9 || state.floor === 10) return floorPresets[5];
+      return floorPresets[4];
+    }
+
+    function updateFloorUI() {
+      const preset = pickFloorPreset();
+      floorNameEl.textContent = preset.name;
+      floorTypeEl.textContent = preset.type;
+      floorTierLabelEl.textContent = "Spire Depth: " + preset.tier;
+      floorDescriptionEl.textContent = preset.description;
+
+      floorTagsListEl.innerHTML = "";
+      preset.tags.forEach((tag) => {
+        const span = document.createElement("span");
+        span.className = "tag-pill";
+        const inner = document.createElement("span");
+        inner.textContent = tag;
+        span.appendChild(inner);
+        floorTagsListEl.appendChild(span);
+      });
+
+      state.enemy = { ...preset.enemy };
+      updateEnemyUI();
+
+      let styleHint = "balanced";
+      if (state.lastStyle === "aggressive") styleHint = "aggressive";
+      else if (state.lastStyle === "cautious") styleHint = "cautious";
+      else if (state.lastStyle === "echo-heavy") styleHint = "echo-driven";
+
+      choiceTextEl.textContent =
+        "The Spire remembers: your last floor was " +
+        styleHint +
+        ". Will you reinforce that pattern or break it?";
+    }
+
+    function recalcTowerMood() {
+      if (state.attunement < 3) state.towerMood = "Wary";
+      else if (state.attunement < 7) state.towerMood = "Curious";
+      else if (state.attunement < 12) state.towerMood = "Engaged";
+      else if (state.attunement < 18) state.towerMood = "Obsessed";
+      else state.towerMood = "Entwined";
+    }
+
+    function checkRunEnd() {
+      if (state.resolve <= 0) {
+        addLog("You fall. The Spire closes its eyes—for now.", "system");
+        showSummit(false);
+        return true;
+      }
+      if (state.floor > state.maxFloors) {
+        showSummit(true);
+        return true;
+      }
+      return false;
+    }
+
+    function showSummit(victory) {
+      summitBannerEl.style.display = "flex";
+      finalAttunementEl.textContent = state.attunement;
+      finalTraitsEl.textContent = state.traits;
+      finalFloorsEl.textContent = state.floorsCleared;
+
+      const summitText = document.getElementById("summit-text");
+      if (victory) {
+        summitText.textContent =
+          "The Spire quiets. It has learned your rhythm—and you have learned its. A new cycle waits below.";
+      } else {
+        summitText.textContent =
+          "Your climb ends here, but the Spire keeps your echo. Next time, it will be ready for you.";
+      }
+    }
+
+    function resetRun() {
+      state.floor = 1;
+      state.resolve = 100;
+      state.focus = 0;
+      state.tempo = 1.0;
+      state.shards = 0;
+      state.attunement = 0;
+      state.traits = 0;
+      state.floorsCleared = 0;
+      state.towerMood = "Wary";
+      state.lastStyle = "neutral";
+      state.combo = 0;
+      state.critChance = 5;
+      state.statusEffects = [];
+      state.relics = [];
+      state.stability = 0;
+      state.floorFatigue = 0;
+      state.enemy = { ...floorPresets[0].enemy };
+      logEl.innerHTML = "";
+      summitBannerEl.style.display = "none";
+      addLog("A new climb begins. The Spire pretends not to recognize you.", "system");
+      updateStatsUI();
+      updateFloorUI();
+    }
+
+    // MINIGAME SYSTEM
+
+    function openMinigame(type) {
+      activeMinigame = type;
+      minigameContent.innerHTML = "";
+      minigameStatus.textContent = "Perform well for better rewards.";
+      if (timingInterval) {
+        clearInterval(timingInterval);
+        timingInterval = null;
+      }
+
+      if (type === "combat") {
+        minigameTitle.textContent = "Rhythm Strike";
+        minigameDesc.textContent =
+          "Click while the white marker is inside the glowing band to land a strong hit. Better timing = more damage.";
+        createCombatTimingMinigame();
+      } else if (type === "puzzle") {
+        minigameTitle.textContent = "Sigil Sequence";
+        minigameDesc.textContent =
+          "Memorize the rune sequence, then reproduce it. More accurate sequences grant more attunement and traits.";
+        createPuzzleSequenceMinigame();
+      } else if (type === "echo") {
+        minigameTitle.textContent = "Echo Bargain";
+        minigameDesc.textContent =
+          "Choose one echo to bind. Each offers a different trade between health, shards, and attunement.";
+        createEchoChoiceMinigame();
+      } else if (type === "ascend") {
+        minigameTitle.textContent = "Ascension Glyph";
+        minigameDesc.textContent =
+          "Click when the marker is inside the glowing band to align the glyph and ascend.";
+        createAscendMinigame();
+      }
+
+      minigameOverlay.style.display = "flex";
+    }
+
+    function closeMinigame() {
+      minigameOverlay.style.display = "none";
+      activeMinigame = null;
+      if (timingInterval) {
+        clearInterval(timingInterval);
+        timingInterval = null;
+      }
+    }
+
+    // Combat timing minigame
+    function createCombatTimingMinigame() {
+      const bar = document.createElement("div");
+      bar.id = "timing-bar";
+
+      const target = document.createElement("div");
+      target.id = "timing-target";
+      const targetPos = 20 + Math.random() * 60;
+      target.style.left = targetPos + "%";
+
+      const marker = document.createElement("div");
+      marker.id = "timing-marker";
+      timingMarkerPos = 0;
+      timingDirection = 1;
+      marker.style.left = timingMarkerPos + "%";
+
+      bar.appendChild(target);
+      bar.appendChild(marker);
+      minigameContent.appendChild(bar);
+
+      const clickBtn = document.createElement("button");
+      clickBtn.textContent = "Strike!";
+      clickBtn.style.marginTop = "8px";
+      minigameContent.appendChild(clickBtn);
+
+      timingInterval = setInterval(() => {
+        timingMarkerPos += timingDirection * 1.8;
+        if (timingMarkerPos <= 0) {
+          timingMarkerPos = 0;
+          timingDirection = 1;
+        } else if (timingMarkerPos >= 96) {
+          timingMarkerPos = 96;
+          timingDirection = -1;
+        }
+        marker.style.left = timingMarkerPos + "%";
+      }, 16);
+
+      clickBtn.addEventListener("click", () => {
+        clearInterval(timingInterval);
+        timingInterval = null;
+        const centerTarget = targetPos + 9;
+        const distance = Math.abs(timingMarkerPos + 2 - centerTarget);
+        let quality;
+        if (distance < 4) quality = "perfect";
+        else if (distance < 10) quality = "good";
+        else quality = "poor";
+        resolveCombatMinigame(quality);
+      });
+    }
+
+    function resolveCombatMinigame(quality) {
+      let baseDamage = 12 + Math.round(Math.random() * 10);
+      let damageTaken = 6 + Math.round(Math.random() * 8);
+      let shardsGain = 2 + Math.round(Math.random() * 3);
+      let critRoll = Math.random() * 100 < state.critChance;
+
+      if (quality === "perfect") {
+        baseDamage *= 1.8;
+        damageTaken *= 0.5;
+        shardsGain += 3;
+        state.combo += 2;
+        state.tempo = clamp(state.tempo + 0.1, 0.5, 2.0);
+        state.critChance = clamp(state.critChance + 2, 5, 30);
+        if (!state.statusEffects.includes("Overclocked")) state.statusEffects.push("Overclocked");
+        state.stability = clamp(state.stability + 1, 0, 5);
+        minigameStatus.textContent = "Perfect hit! The Spire flinches.";
+      } else if (quality === "good") {
+        baseDamage *= 1.2;
+        state.combo += 1;
+        state.stability = clamp(state.stability + 1, 0, 5);
+        minigameStatus.textContent = "Solid strike. The tower notes your rhythm.";
+      } else {
+        damageTaken *= 1.3;
+        state.combo = 0;
+        state.critChance = clamp(state.critChance - 1, 5, 30);
+        if (!state.statusEffects.includes("Off-beat")) state.statusEffects.push("Off-beat");
+        minigameStatus.textContent = "You swing off-beat. The Spire punishes hesitation.";
+      }
+
+      if (critRoll) {
+        baseDamage *= 1.5;
+        minigameStatus.textContent += " Critical echo amplifies your strike.";
+      }
+
+      const armorReduction = Math.max(0, state.enemy.armor - (state.relics.includes("Piercing Glyph") ? 1 : 0));
+      baseDamage = Math.max(0, baseDamage - armorReduction * 3);
+
+      state.resolve = clamp(state.resolve - damageTaken, 0, 100);
+      state.focus = clamp(state.focus + 10 + Math.round(Math.random() * 6), 0, 100);
+      state.shards += shardsGain;
+      state.attunement += quality === "perfect" ? 2 : 1;
+      state.lastStyle = "aggressive";
+      state.floorFatigue += 1;
+
+      addLog(
+        `Rhythm strike (${quality}). Damage ~${Math.round(baseDamage)}, taken ${Math.round(
+          damageTaken
+        )}, shards +${shardsGain}. Combo ${state.combo}. Stability ${state.stability}.`,
+        "combat"
+      );
+
+      recalcTowerMood();
+      updateStatsUI();
+      checkRunEnd();
+      setTimeout(closeMinigame, 600);
+    }
+
+    // Puzzle sequence minigame
+    function createPuzzleSequenceMinigame() {
+      const symbols = ["◼", "◆", "●", "▲"];
+      const length = 3 + Math.floor(Math.random() * 2);
+      sequenceTarget = [];
+      for (let i = 0; i < length; i++) {
+        sequenceTarget.push(symbols[Math.floor(Math.random() * symbols.length)]);
+      }
+      sequenceInput = [];
+
+      const row = document.createElement("div");
+      row.id = "sequence-row";
+      sequenceTarget.forEach((s) => {
+        const div = document.createElement("div");
+        div.className = "sequence-symbol";
+        div.textContent = s;
+        row.appendChild(div);
+      });
+      minigameContent.appendChild(row);
+
+      const hint = document.createElement("div");
+      hint.textContent = "Memorize this pattern. It will fade in 3 seconds.";
+      minigameContent.appendChild(hint);
+
+      setTimeout(() => {
+        row.querySelectorAll(".sequence-symbol").forEach((el) => (el.textContent = "?"));
+        hint.textContent = "Recreate the pattern by clicking runes below.";
+      }, 3000);
+
+      const inputRow = document.createElement("div");
+      inputRow.id = "sequence-input";
+      symbols.forEach((s) => {
+        const btn = document.createElement("button");
+        btn.className = "sequence-btn";
+        btn.textContent = s;
+        btn.addEventListener("click", () => {
+          if (sequenceInput.length >= sequenceTarget.length) return;
+          sequenceInput.push(s);
+          if (sequenceInput.length === sequenceTarget.length) {
+            resolvePuzzleMinigame();
+          }
+        });
+        inputRow.appendChild(btn);
+      });
+      minigameContent.appendChild(inputRow);
+    }
+
+    function resolvePuzzleMinigame() {
+      let correct = 0;
+      for (let i = 0; i < sequenceTarget.length; i++) {
+        if (sequenceTarget[i] === sequenceInput[i]) correct++;
+      }
+      const ratio = correct / sequenceTarget.length;
+      let quality;
+      if (ratio === 1) quality = "perfect";
+      else if (ratio >= 0.5) quality = "partial";
+      else quality = "fail";
+
+      if (quality === "perfect") {
+        const attGain = 4;
+        state.attunement += attGain;
+        state.traits += 1;
+        state.stability = clamp(state.stability + 1, 0, 5);
+        if (!state.relics.includes("Mnemonic Shard")) state.relics.push("Mnemonic Shard");
+        minigameStatus.textContent = "You trace the sigil flawlessly. The Spire grants you a new trait.";
+        addLog(`Perfect sigil recall. Attunement +${attGain}, new Echo Trait unlocked. Stability +1.`, "choice");
+      } else if (quality === "partial") {
+        const attGain = 2;
+        state.attunement += attGain;
+        state.stability = clamp(state.stability + 1, 0, 5);
+        minigameStatus.textContent = "You recall most of the pattern. The Spire offers a modest boon.";
+        addLog(`Partial sigil recall. Attunement +${attGain}, Stability +1.`, "choice");
+      } else {
+        state.resolve = clamp(state.resolve - 8, 0, 100);
+        minigameStatus.textContent = "The sigil rejects you. The backlash stings.";
+        addLog("Failed sigil. Resolve -8.", "choice");
+      }
+
+      state.lastStyle = "cautious";
+      state.floorFatigue += 1;
+      recalcTowerMood();
+      updateStatsUI();
+      checkRunEnd();
+      setTimeout(closeMinigame, 800);
+    }
+
+    // Echo choice minigame
+    function createEchoChoiceMinigame() {
+      const container = document.createElement("div");
+      container.id = "echo-options";
+
+      const options = [
+        {
+          name: "Echo of Preservation",
+          desc: "Sacrifice shards to restore health and gain a defensive status.",
+          effect: () => {
+            const cost = Math.min(state.shards, 6);
+            state.shards -= cost;
+            const heal = 15 + Math.round(Math.random() * 8);
+            state.resolve = clamp(state.resolve + heal, 0, 100);
+            if (!state.statusEffects.includes("Ward")) state.statusEffects.push("Ward");
+            state.stability = clamp(state.stability + 1, 0, 5);
+            addLog(`You trade ${cost} shards for ${heal} Resolve. Ward gained. Stability +1.`, "choice");
+          },
+        },
+        {
+          name: "Echo of Ambition",
+          desc: "Lose some health to gain shards, attunement, and a relic.",
+          effect: () => {
+            const loss = 10 + Math.round(Math.random() * 6);
+            state.resolve = clamp(state.resolve - loss, 0, 100);
+            const shardGain = 10 + Math.round(Math.random() * 8);
+            state.shards += shardGain;
+            state.attunement += 2;
+            if (!state.relics.includes("Greed-Touched Charm")) state.relics.push("Greed-Touched Charm");
+            addLog(
+              `You bleed ${loss} Resolve into the well. Shards +${shardGain}, Attunement +2, relic gained.`,
+              "choice"
+            );
+          },
+        },
+        {
+          name: "Echo of Tempo",
+          desc: "Convert Focus into Tempo and Crit chance, empowering future combats.",
+          effect: () => {
+            const focusCost = Math.min(state.focus, 20);
+            state.focus = clamp(state.focus - focusCost, 0, 100);
+            state.tempo = clamp(state.tempo + 0.2, 0.5, 2.0);
+            state.critChance = clamp(state.critChance + 5, 5, 35);
+            if (!state.statusEffects.includes("Hasted")) state.statusEffects.push("Hasted");
+            addLog(
+              `You burn ${focusCost} Focus into pure motion. Tempo and Crit chance surge.`,
+              "choice"
+            );
+          },
+        },
+      ];
+
+      options.forEach((opt) => {
+        const div = document.createElement("div");
+        div.className = "echo-option";
+        const title = document.createElement("div");
+        title.style.fontWeight = "600";
+        title.textContent = opt.name;
+        const desc = document.createElement("div");
+        desc.textContent = opt.desc;
+        desc.style.fontSize = "0.75rem";
+        desc.style.color = "#d0c8ff";
+        div.appendChild(title);
+        div.appendChild(desc);
+        div.addEventListener("click", () => {
+          opt.effect();
+          state.lastStyle = "echo-heavy";
+          state.floorFatigue += 1;
+          recalcTowerMood();
+          updateStatsUI();
+          checkRunEnd();
+          minigameStatus.textContent = "The echo binds to you. The Spire adjusts its expectations.";
+          setTimeout(closeMinigame, 800);
+        });
+        container.appendChild(div);
+      });
+
+      minigameContent.appendChild(container);
+    }
+
+    // Ascend minigame (second chance)
+    function createAscendMinigame() {
+      const bar = document.createElement("div");
+      bar.id = "timing-bar";
+
+      const target = document.createElement("div");
+      target.id = "timing-target";
+      const targetPos = 30 + Math.random() * 40;
+      target.style.left = targetPos + "%";
+
+      const marker = document.createElement("div");
+      marker.id = "timing-marker";
+      timingMarkerPos = 0;
+      timingDirection = 1;
+      marker.style.left = timingMarkerPos + "%";
+
+      bar.appendChild(target);
+      bar.appendChild(marker);
+      minigameContent.appendChild(bar);
+
+      const clickBtn = document.createElement("button");
+      clickBtn.textContent = "Align!";
+      clickBtn.style.marginTop = "8px";
+      minigameContent.appendChild(clickBtn);
+
+      timingInterval = setInterval(() => {
+        timingMarkerPos += timingDirection * 1.5;
+        if (timingMarkerPos <= 0) {
+          timingMarkerPos = 0;
+          timingDirection = 1;
+        } else if (timingMarkerPos >= 96) {
+          timingMarkerPos = 96;
+          timingDirection = -1;
+        }
+        marker.style.left = timingMarkerPos + "%";
+      }, 16);
+
+      clickBtn.addEventListener("click", () => {
+        clearInterval(timingInterval);
+        timingInterval = null;
+        const centerTarget = targetPos + 9;
+        const distance = Math.abs(timingMarkerPos + 2 - centerTarget);
+        if (distance < 6) resolveAscendMinigame("success");
+        else resolveAscendMinigame("fail");
+      });
+    }
+
+    function resolveAscendMinigame(result) {
+      if (result === "success") {
+        minigameStatus.textContent = "The glyph aligns. You ascend.";
+        addLog("You force the glyph into alignment. The Spire grudgingly lets you pass.", "choice");
+        setTimeout(() => {
+          closeMinigame();
+          actuallyAscendFloor();
+        }, 500);
+      } else {
+        const dmg = 15 + Math.round(Math.random() * 5);
+        state.resolve = clamp(state.resolve - dmg, 0, 100);
+        state.floorFatigue += 1;
+        minigameStatus.textContent = "The glyph rejects you. The backlash burns.";
+        addLog(`Ascension glyph backlash. Resolve -${dmg}. You remain on this floor.`, "choice");
+        recalcTowerMood();
+        updateStatsUI();
+        checkRunEnd();
+        setTimeout(closeMinigame, 700);
+      }
+    }
+
+    // Guardian check (hard difficulty)
+    function guardianCheck() {
+      const roll = Math.random();
+      let passed = false;
+
+      if (roll < 0.33) {
+        // Combat check
+        let chance = 0.3 + state.tempo * 0.15;
+        chance -= state.floorFatigue * 0.03;
+        chance = clamp(chance, 0.05, 0.9);
+        passed = Math.random() < chance;
+        if (!passed) {
+          addLog("A guardian tests your form. Combat check failed.", "combat");
+        } else {
+          addLog("Your stance satisfies the guardian. Combat check passed.", "combat");
+        }
+      } else if (roll < 0.66) {
+        // Puzzle check
+        let chance = 0.2 + state.focus / 250;
+        chance -= state.floorFatigue * 0.03;
+        chance = clamp(chance, 0.05, 0.9);
+        passed = Math.random() < chance;
+        if (!passed) {
+          addLog("A sigil seals the staircase. Puzzle check failed.", "choice");
+        } else {
+          addLog("You read the sigil correctly. Puzzle check passed.", "choice");
+        }
+      } else {
+        // Echo check
+        let chance = 0.2 + state.attunement / 40;
+        chance -= state.floorFatigue * 0.03;
+        chance = clamp(chance, 0.05, 0.9);
+        passed = Math.random() < chance;
+        if (!passed) {
+          addLog("Your echoes scatter at the threshold. Resonance check failed.", "system");
+        } else {
+          addLog("Your echoes resonate with the stair. Resonance check passed.", "system");
+        }
+      }
+
+      return passed;
+    }
+
+    // Actual ascend logic (called after passing checks)
+    function actuallyAscendFloor() {
+      state.floorsCleared += 1;
+      state.floor += 1;
+      state.stability = clamp(state.stability - 1, 0, 5);
+      state.floorFatigue = 0;
+
+      const healChance = Math.random();
+      if (healChance > 0.6) {
+        const heal = 5 + Math.round(Math.random() * 8);
+        state.resolve = clamp(state.resolve + heal, 0, 100);
+        addLog(`Between floors, the Spire lets you breathe. Resolve +${heal}.`, "system");
+      }
+
+      if (state.floor === state.maxFloors) {
+        addLog("You feel a presence waiting above. The Spire is about to show you yourself.", "system");
+      } else if (state.floor > state.maxFloors) {
+        if (!checkRunEnd()) {
+          showSummit(true);
+        }
+        return;
+      } else {
+        addLog(`You ascend to floor ${state.floor}. The air changes slightly.`, "system");
+      }
+
+      recalcTowerMood();
+      updateStatsUI();
+      updateFloorUI();
+      checkRunEnd();
+    }
+
+    // ACTION HANDLERS
+
+    btnCombat.addEventListener("click", () => {
+      if (summitBannerEl.style.display === "flex") return;
+      openMinigame("combat");
+    });
+
+    btnPuzzle.addEventListener("click", () => {
+      if (summitBannerEl.style.display === "flex") return;
+      openMinigame("puzzle");
+    });
+
+    btnEcho.addEventListener("click", () => {
+      if (summitBannerEl.style.display === "flex") return;
+      if (state.focus < 10) {
+        addLog("You reach for an echo, but the tower offers only silence. (Need more Focus)", "system");
+        return;
+      }
+      openMinigame("echo");
+    });
+
+    btnAscend.addEventListener("click", () => {
+      if (summitBannerEl.style.display === "flex") return;
+
+      if (state.stability <= 0) {
+        addLog("The Spire rejects your ascent. You lack Stability.", "system");
+        const dmg = 8 + Math.round(Math.random() * 4);
+        state.resolve = clamp(state.resolve - dmg, 0, 100);
+        state.floorFatigue += 1;
+        updateStatsUI();
+        checkRunEnd();
+        return;
+      }
+
+      const passed = guardianCheck();
+      if (passed) {
+        actuallyAscendFloor();
+      } else {
+        openMinigame("ascend");
+      }
+    });
+
+    restartBtn.addEventListener("click", resetRun);
+    minigameCancel.addEventListener("click", closeMinigame);
+
+    resetRun();
+  </script>
+</body>
+</html>
+
